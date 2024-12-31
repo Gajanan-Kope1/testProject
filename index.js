@@ -16,11 +16,39 @@ app.get("/products",async (req,res)=>{
         let orderDir = req.query.orderDir || 'DESC';
         let searchFields = req.query.searchFields ? req.query.searchFields.split(",") : []
         let searchVal = req.query.searchVal || "";
-        connection.query(`select * from Products ORDER BY (${orderBy}) ${orderDir} OFFSET ${page} ROWS FETCH NEXT ${limit} ROWS ONLY`,(err,result,fields)=>{
+
+        let query = "select * from Products";
+        let countQuery = "select count(*) from Products";
+        if(searchFields.length && searchVal){
+            query += " WHERE ";
+            countQuery += " WHERE ";
+            for(let i=0;i<searchFields.length;i++){
+                countQuery += `${searchFields[i]} LIKE '%${searchVal}%'`;
+                query += `${searchFields[i]} LIKE '%${searchVal}%'`;
+                if(i < searchFields.length - 1){
+                    countQuery += " OR ";
+                    query += " OR ";
+                }
+            }
+        }else if(!searchFields.length && searchVal){
+            query += ` WHERE productName LIKE '%${searchVal}%'`;
+            countQuery += ` WHERE productName LIKE '%${searchVal}%'`;
+        }
+
+        connection.query(countQuery,(err,result,fields)=>{
             if(err){
                 throw new Error(err.message);
             }
-            return res.status(200).send({status:200,msg:"success",currentPage:page,pageSize:limit,data:result});
+            let totalCount = result[0]['count(*)'] -1;
+            let totalPages = Math.ceil(totalCount / limit);
+
+            connection.query(`${query} ORDER BY (${orderBy}) ${orderDir} OFFSET ${page} ROWS FETCH NEXT ${limit} ROWS ONLY`,(err,result,fields)=>{
+                if(err){
+                    throw new Error(err.message);
+                }
+                return res.status(200).send({status:200,msg:"success",currentPage:page,pageSize:limit,totalPages:totalPages,totalCount:totalCount,data:result});
+            })
+
         })
     }catch(err){
         res.status(400).send({status:400,message:err.mesage,data:null});
