@@ -16,7 +16,7 @@ app.get("/products",async (req,res)=>{
         let orderDir = req.query.orderDir || 'DESC';
         let searchFields = req.query.searchFields ? req.query.searchFields.split(",") : []
         let searchVal = req.query.searchVal || "";
-        connection.query(`select * from Products WHERE CONCAT_WS(${searchFields[0]}, ${searchFields[1]}) LIKE '%${searchVal}%' ORDER BY (${orderBy}) ${orderDir} OFFSET ${page} ROWS FETCH NEXT ${limit} ROWS ONLY`,(err,result,fields)=>{
+        connection.query(`select * from Products ORDER BY (${orderBy}) ${orderDir} OFFSET ${page} ROWS FETCH NEXT ${limit} ROWS ONLY`,(err,result,fields)=>{
             if(err){
                 throw new Error(err.message);
             }
